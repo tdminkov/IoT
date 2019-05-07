@@ -44,7 +44,7 @@ else
         end
     end
     purple_group_status = 0;
-    if (houses_in_pink >= n_h / 2)
+    if (houses_in_pink <= n_h / 2)
         purple_group_status = 1;
     end
     for i=1:n_h
