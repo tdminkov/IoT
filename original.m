@@ -9,7 +9,6 @@ tau_c=input('Input the cooling constant tau_c [C/h]: ');
 t_end=input('Input the simulation time [h]: ');
 n_h=input('Input the number of homes n_h: '); 
 samp=input('Input the sample home index: ');
-mode=input('Input the heating strategy - complete(0) or partial switch off(1): ');
 %
 %t_h=Theta*tau_h; t_c=Theta*tau_c; t_p=t_h+t_c;
 %
@@ -24,69 +23,35 @@ E(1:n_e,1)=0;
 P(1:n_e,1)=0;
 rng('shuffle','multFibonacci');
 therm=randi([0,1],1,n_h);
-Ttilde = Tint - DTint;
-%{
 for i=1:n_h
    T0(i)=Tint+Theta*rand;
    if(T0(i)==Tint && therm(i)==0) 
       therm(i)=1;
    end
-   if(T0(i)==Tint+Theta && therm(i)==1)
+   if(T0(i)==Tint+Theta && them(i)==1)
       therm(i)=0;
    end
-end
-%}
-if (mode == 0)
-    %complete switch off
-    for i=1:n_h
-        %T0(i) = Ttilde+Theta*rand;
-        T0(i) = Tint+Theta*rand;
-        therm(i) = 0;
-        fprintf('Temp for %d is %f\n', i, T0(i));
-        fprintf('Thermostat for %d is %d\n', i, therm(i));
-        fprintf('=================\n');     
-    end
-else
-    %partial switch off with random decision for every home in [Tint, Ttilde + Theta]
-    random_num = rand;
-    first_group = 0;
-    if (random_num >= 0.5)
-       first_group = 1;
-    end
-    for i=1:n_h
-        %T0(i) = Ttilde+Theta*rand;
-        T0(i) = Tint+Theta*rand;
-        %if (T0(i) >= Tint && T0(i) <= Ttilde + Theta)
-        if (T0(i) >= Ttilde + Theta && T0(i) <= Tint + Theta)
-            therm(i) = first_group;
-        else
-            therm(i) = 0;
-        end
-        fprintf('Temp for %d is %f\n', i, T0(i));
-        fprintf('Thermostat for %d is %d\n', i, therm(i));
-        fprintf('=================\n'); 
-    end
 end
 T=T0';
 for i=1:n_h
    if(therm(i)==0)   %  the home is cooling down
-      t_st(i,1)=(T0(i)-Ttilde)/tau_c; therm(i)=1; % record time of change and switch
-      Tc(i,1)=Ttilde;     % update temperature
+      t_st(i,1)=(T0(i)-Tint)/tau_c; therm(i)=1;
+      Tc(i,1)=Tint;
    else   %  the home is heating up
-      t_st(i,1)=(Ttilde+Theta-T0(i))/tau_h; therm(i)=0; % record time of change and switch
-      Tc(i,1)=Ttilde+Theta;   % update temperature
-      n_l=1; n_u=ceil(t_st(i,1)*1000); % 
+      t_st(i,1)=(Tint+Theta-T0(i))/tau_h; therm(i)=0;
+      Tc(i,1)=Tint+Theta;
+      n_l=1; n_u=ceil(t_st(i,1)*1000);
       E(n_l:n_u,1)=E(n_l:n_u,1)+1;
    end
 end
-t_ch=[t_ch,t_st]; T=[T,Tc]; conv=0; % append newest thermostat changes and temperatures
-while(conv==0) % while simulation for all homes isn't finished
+t_ch=[t_ch,t_st]; T=[T,Tc]; conv=0;
+while(conv==0)
    conv=1; 
    for i=1:n_h 
       if(therm(i)==0 && t_st(i,1)<t_end)   %  cooling down next
-         t_st(i,1)=t_st(i,1)+Theta/tau_c; % new switch time
-         Tc(i,1)=Ttilde;                    % new temperature
-         if(t_st(i,1)>t_end)              % if time is past the end temperature is higher
+         t_st(i,1)=t_st(i,1)+Theta/tau_c; 
+         Tc(i,1)=Tint;
+         if(t_st(i,1)>t_end)
             Tc(i,1)=Tc(i,1)+(t_st(i,1)-t_end)*tau_c; 
             t_st(i,1)=t_end;  
          end
@@ -94,8 +59,8 @@ while(conv==0) % while simulation for all homes isn't finished
       if(therm(i)==1 && t_st(i,1)<t_end)   %  heating up next
          n_l=floor(t_st(i,1)*1000); 
          t_st(i,1)=t_st(i,1)+Theta/tau_h; 
-         Tc(i,1)=Ttilde+Theta;                % new temperature
-         if(t_st(i,1)>t_end)            % if time is past the end temperature is lower
+         Tc(i,1)=Tint+Theta;
+         if(t_st(i,1)>t_end)
             Tc(i,1)=Tc(i,1)-(t_st(i,1)-t_end)*tau_h;
             t_st(i,1)=t_end; 
          end
@@ -111,7 +76,7 @@ while(conv==0) % while simulation for all homes isn't finished
          conv=0;
       end
    end
-   t_ch=[t_ch,t_st]; T=[T,Tc];      % append new values 
+   t_ch=[t_ch,t_st]; T=[T,Tc];
 end
 for i=1:n_e
    if(i>1) 
@@ -121,7 +86,6 @@ for i=1:n_e
    end
 end
 set(gcf,'Position',[10,530,1260,400]);
-%--------- left graph
 if(samp>=1 && samp<=n_h)
    n_s=1; 
    while(t_ch(samp,n_s)<t_end)
@@ -140,12 +104,10 @@ if(samp>=1 && samp<=n_h)
    hold on
    plot(x,y2,'-k','LineWidth',1);
 end
-%-------- middle graph
 subplot(132); plot(E,'-r','LineWidth',1.5);
 axis([0 n_e 0.9*min(E) 1.1*max(E)]);
 xlabel('time [h/10^3]'); ylabel('Number of heated homes');
 title('Current power consumption (1=one home heated)')
-%-------- right graph
 subplot(133); plot(P,'-g','LineWidth',1.5);
 axis([0 n_e 0.9*min(P) 1.1*max(P)]);
 xlabel('time [h/10^3]'); ylabel('Cummulative power');
