@@ -25,21 +25,9 @@ P(1:n_e,1)=0;
 rng('shuffle','multFibonacci');
 therm=randi([0,1],1,n_h);
 Ttilde = Tint - DTint;
-%{
-for i=1:n_h
-   T0(i)=Tint+Theta*rand;
-   if(T0(i)==Tint && therm(i)==0) 
-      therm(i)=1;
-   end
-   if(T0(i)==Tint+Theta && therm(i)==1)
-      therm(i)=0;
-   end
-end
-%}
 if (mode == 0)
     %complete switch off
     for i=1:n_h
-        %T0(i) = Ttilde+Theta*rand;
         T0(i) = Tint+Theta*rand;
         therm(i) = 0;
         fprintf('Temp for %d is %f\n', i, T0(i));
@@ -47,20 +35,23 @@ if (mode == 0)
         fprintf('=================\n');     
     end
 else
-    %partial switch off with random decision for every home in [Tint, Ttilde + Theta]
-    random_num = rand;
-    first_group = 0;
-    if (random_num >= 0.5)
-       first_group = 1;
+    %partial switch off
+    houses_in_pink = 0;
+    for i=1:n_h
+        T0(i) = Tint+Theta*rand;
+        if (T0(i) >= Ttilde + Theta)
+            houses_in_pink = houses_in_pink + 1;
+        end
+    end
+    purple_group_status = 0;
+    if (houses_in_pink >= n_h / 2)
+        purple_group_status = 1;
     end
     for i=1:n_h
-        %T0(i) = Ttilde+Theta*rand;
-        T0(i) = Tint+Theta*rand;
-        %if (T0(i) >= Tint && T0(i) <= Ttilde + Theta)
-        if (T0(i) >= Ttilde + Theta && T0(i) <= Tint + Theta)
-            therm(i) = first_group;
-        else
+        if (T0(i) >= Ttilde + Theta)
             therm(i) = 0;
+        else 
+            therm(i) = purple_group_status;
         end
         fprintf('Temp for %d is %f\n', i, T0(i));
         fprintf('Thermostat for %d is %d\n', i, therm(i));
