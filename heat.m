@@ -44,7 +44,7 @@ else
         end
     end
     purple_group_status = 0;
-    if (houses_in_pink <= n_h / 2)
+    if (houses_in_pink >= n_h / 2)
         purple_group_status = 1;
     end
     for i=1:n_h
@@ -122,7 +122,7 @@ if(samp>=1 && samp<=n_h)
       subplot(131); 
       plot([t_ch(samp,i) t_ch(samp,i+1)],[T(samp,i) T(samp,i+1)],'-b','LineWidth',2); hold on 
    end
-   axis([0 t_end Tint-1 Tint+Theta+1]);
+   axis([0 t_end Ttilde-1 Ttilde+Theta+1]);
    xlabel('time [h]'); ylabel('Temp [^\circ C]');
    title(['Temperature profile of the home ',num2str(samp)]);
    x=[0:0.01:t_end]; nx=size(x);
